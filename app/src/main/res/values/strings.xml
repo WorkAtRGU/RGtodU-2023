@@ -5,6 +5,7 @@
     <string name="tv_home_welcome">Hello, got somethign to do?</string>
     <string name="btn_home_add_task">Add a task</string>
     <string name="btn_home_view_tasks">View tasks</string>
+    <string name="btn_home_view_tasks_list">View tasks (ListView)</string>
     <string name="btn_home_view_a_task">View a task</string>
 
     <!-- create / edit tasks fragment -->
@@ -42,4 +43,6 @@
 
     <!-- task list item view adapter -->
     <string name="tv_taskListPomodoros">%1$d pomodoros remaining</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

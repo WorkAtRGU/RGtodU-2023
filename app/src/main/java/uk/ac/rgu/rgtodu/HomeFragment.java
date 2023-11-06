@@ -78,6 +78,11 @@ public class HomeFragment extends Fragment  implements View.OnClickListener {
         Button btnViewTask = view.findViewById(R.id.btn_home_view_task);
         btnViewTask.setOnClickListener(this);
 
+        // View Tasks (ListView) Button
+        Button btnViewTasksList = view.findViewById(R.id.btn_home_vew_tasks_list);
+        btnViewTasksList.setOnClickListener(this);
+
+
     }
 
     @Override
@@ -93,6 +98,9 @@ public class HomeFragment extends Fragment  implements View.OnClickListener {
         } else if (v.getId() == R.id.btn_home_view_task) {
             // Navigate using the action between the home fragment and view a task fragment (fake task for testing)
             navController.navigate(R.id.action_home_to_view_task);
+        } else if (v.getId() == R.id.btn_home_vew_tasks_list) {
+            // Navigate using the action between the home fragment and view tasks fragment (this uses the one that includes a RecyclerView)
+            navController.navigate(R.id.action_home_to_listview_tasks);
         }
     }
 }
