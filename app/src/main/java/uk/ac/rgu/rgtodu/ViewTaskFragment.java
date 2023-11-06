@@ -1,15 +1,20 @@
 package uk.ac.rgu.rgtodu;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.provider.AlarmClock;
+import android.provider.CalendarContract;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.text.DateFormat;
@@ -25,37 +30,32 @@ import uk.ac.rgu.rgtodu.data.TaskStatus;
  * Use the {@link ViewTaskFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class ViewTaskFragment extends Fragment {
+public class ViewTaskFragment extends Fragment implements AdapterView.OnClickListener{
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    // fragment initialisation parameters - the task to display
+    public static final String ARG_TASK = "task";
+    public static final String ARG_TASK_NAME = "task_name";
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    public ViewTaskFragment() {
-        // Required empty public constructor
-    }
+    // Field variable for storing the task being displayed
+    private Task mTask;
 
     /**
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
      *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
+     * @param task The Task to be displayed on the Fragment
      * @return A new instance of fragment ViewTaskFragment.
      */
-    // TODO: Rename and change types and number of parameters
-    public static ViewTaskFragment newInstance(String param1, String param2) {
+    public static ViewTaskFragment newInstance(Task task) {
         ViewTaskFragment fragment = new ViewTaskFragment();
         Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
+        args.putParcelable(ARG_TASK, task);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    public ViewTaskFragment() {
+        // Required empty public constructor
     }
 
     // tag for logging
@@ -64,30 +64,27 @@ public class ViewTaskFragment extends Fragment {
     // key for storing the mTask during configuration changes
     private static final String KEY_TASK = "mtask";
 
-    // Field variable for storing the task being displayed
-    private Task mTask;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "on create");
         if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+            Bundle args = getArguments();
+            this.mTask = args.getParcelable(ARG_TASK);
+            String task_name = args.getString(ARG_TASK_NAME);
         }
 
         // we could check the if savedInstanceState has a task in it
         // here (which we would for Activities) but for fragments
         // that goes into the onViewCreated
 
-
-        // initialise the data to be displayed in this UI
-        // it would be better programming to put this in onViewCreated
-        // given that we're now handing restoring state to avoid
-        // calling this if its not needed
-        this.mTask = TaskRepository.getRepository(getContext()).getSyntheticTask();
-
-        Log.d(TAG, mTask.toString());
+        // however, if the user has came from the home page
+        if (this.mTask == null){
+            // display a random task
+            this.mTask = TaskRepository.getRepository(getContext()).getSyntheticTask();
+        }
     }
 
     @Override
@@ -136,17 +133,32 @@ public class ViewTaskFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        // check if savedInstanceState has a task in it to display
-        // i.e. recovering from a configuration change
-        // savedInstanceState will be null if its the first time this is running
-        if (savedInstanceState != null && savedInstanceState.containsKey(KEY_TASK)){
+        // add click listener to the delete button
+        Button btnDelete = view.findViewById(R.id.btn_viewDeleteTask);
+        btnDelete.setOnClickListener(this);
+
+        // add click listener for the other buttons
+        Button btnDoTask = view.findViewById(R.id.btn_view_do_task);
+        btnDoTask.setOnClickListener(this);
+        Button btnAddToCalendar = view.findViewById(R.id.btn_view_add_calendar);
+        btnAddToCalendar.setOnClickListener(this);
+
+        // if mTask is not null, then it was passed as an argument
+        if (this.mTask != null){
+            displayTask(view, this.mTask);
+        } else if (savedInstanceState != null && savedInstanceState.containsKey(KEY_TASK)){
+            // check if savedInstanceState has a task in it to display
+            // i.e. recovering from a configuration change
+            // savedInstanceState will be null if its the first time this is running
             Task t = savedInstanceState.getParcelable(KEY_TASK);
             // t shouldn't be null, but defensive programming just incase
             if (t != null){
                 this.mTask = t;
+                displayTask(view, this.mTask);
             }
         }
-        displayTask(view, this.mTask);
+        // else we've not got a Task to display - how did that happen?
+
     }
 
     /**
@@ -196,5 +208,49 @@ public class ViewTaskFragment extends Fragment {
         DateFormat format = SimpleDateFormat.getDateInstance();
         String formattedDate = format.format(task.getDeadline());
         tv_dateValue.setText(formattedDate);
+    }
+
+    @Override
+    public void onClick(View view) {
+        // for the delete task button
+        if (view.getId() == R.id.btn_viewDeleteTask){
+            // if we're displaying a task, then delete it
+            if (this.mTask != null){
+                TaskRepository.getRepository(getContext()).deleteTask(this.mTask);
+            }
+        } else if (view.getId() == R.id.btn_view_do_task){
+            // launch the clock app with a timer for 25 minutes
+            // create a new Intent to launch the timer app
+            // based on the code from https://developer.android.com/guide/components/intents-common#Clock
+            Intent intent = new Intent(AlarmClock.ACTION_SET_TIMER);
+            // set the length to 20 minutes
+            intent.putExtra(AlarmClock.EXTRA_LENGTH, 1500);
+            // use the task name as a message
+            intent.putExtra(AlarmClock.EXTRA_MESSAGE, mTask.getName());
+            // check that the intent can be resolved on this device
+
+            // this should run; however, always returns null so commented out for now.
+//            if (intent.resolveActivity(getActivity().getApplicationContext().getPackageManager()) != null) {
+            // it can, so do it
+            startActivity(intent);
+//            } else {
+////                // error handling in case can't launch it
+//                Toast.makeText(getContext().getApplicationContext(), R.string.view_lauch_timer_error, Toast.LENGTH_LONG);
+//            }
+        } else if (view.getId() == R.id.btn_view_add_calendar){
+            // launce the calendar app, adding the task name and deadline
+            // based on code from https://developer.android.com/guide/components/intents-common#AddEvent
+            Intent intent = new Intent(Intent.ACTION_INSERT)
+                    .setData(CalendarContract.Events.CONTENT_URI)
+                    .putExtra(CalendarContract.Events.TITLE, mTask.getName())
+                    .putExtra(CalendarContract.Events.DESCRIPTION, mTask.getObjective())
+                    .putExtra(CalendarContract.Events.ALL_DAY, String.valueOf(true))
+                    .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, mTask.getDeadline().getTime())
+                    .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, mTask.getDeadline().getTime());
+//            if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
+            startActivity(intent);
+//            }
+
+        }
     }
 }

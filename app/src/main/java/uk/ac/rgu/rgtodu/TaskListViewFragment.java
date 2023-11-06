@@ -12,6 +12,7 @@ import android.widget.ListView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -117,8 +118,17 @@ public class TaskListViewFragment extends Fragment implements AdapterView.OnItem
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
         Log.d("TASKS", "ListView item at " + position + " clicked");
-        Task taskStr = (Task)adapterView.getItemAtPosition(position);
-        Log.d("TASKS", "ListView item is " + taskStr.getName());
+        Task task = (Task)adapterView.getItemAtPosition(position);
+        Log.d("TASKS", "ListView item is " + task.getName());
+
+        // create a Bundle and navigate to the ViewTaskFragment
+        Bundle bundle = new Bundle();
+        // it shouldn't but just in case
+        if (task != null){
+            bundle.putParcelable(ViewTaskFragment.ARG_TASK, task);
+        }
+        // launch the action
+        Navigation.findNavController(view).navigate(R.id.action_task_recycler_view_to_view_task, bundle);
     }
 
 
