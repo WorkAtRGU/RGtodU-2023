@@ -41,14 +41,10 @@ public class TaskRecyclerViewFragment extends Fragment {
 
     private static final String TAG = "TaskRecyclerViewFrag";
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+    // the list of tasks being displayed
+    List<Task> mTasks;
+    // the RecyclerView adapter being used to display them
+    RecyclerView.Adapter rvAdapter;
 
     public TaskRecyclerViewFragment() {
         // Required empty public constructor
@@ -58,17 +54,11 @@ public class TaskRecyclerViewFragment extends Fragment {
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
      *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
      * @return A new instance of fragment TaskListRecyclerViewActivity.
      */
     // TODO: Rename and change types and number of parameters
-    public static TaskRecyclerViewFragment newInstance(String param1, String param2) {
+    public static TaskRecyclerViewFragment newInstance() {
         TaskRecyclerViewFragment fragment = new TaskRecyclerViewFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
         return fragment;
     }
 
@@ -76,9 +66,11 @@ public class TaskRecyclerViewFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+			// there shouldn't be anything to update here
         }
+		
+		// create an empty list of data to be displayed
+        this.mTasks = new ArrayList<Task>();
     }
 
     @Override
@@ -106,8 +98,13 @@ public class TaskRecyclerViewFragment extends Fragment {
         // setup the layout manager on the recycler view
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // commenting out for now
-//        donwloadAllTasks();
+        // now get the Tasks from the remote endpoint
+        // donwloadAllTasks();
+        // commented out, as now we're using the local database
+        mTasks.clear();
+        List<Task> takss = TaskRepository.getRepository(getContext()).getAllTasks();
+        mTasks.addAll(takss);
+        rvAdapter.notifyDataSetChanged();
     }
 
     /**
@@ -121,44 +118,27 @@ public class TaskRecyclerViewFragment extends Fragment {
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
+                        // empty the list of tasks that are currently being displayed
+                        mTasks.clear();
                         try {
-                            // a list of tasks to store them all in
-                            List<Task> tasks = new ArrayList<Task>();
+                            JsonFirebaseTasksToTaskConverter converter = new JsonFirebaseTasksToTaskConverter();
 
-                            // Process the JSON response
+                            // convert the respond to the root Json object
                             JSONObject jsonObject = new JSONObject(response);
-                            JSONObject tasksObject = jsonObject.getJSONObject("tasks");
-                            // for each task
-                            for (Iterator<String> it = tasksObject.keys(); it.hasNext();){
-                                String taskId = it.next();
-                                // extract the key information
-                                JSONObject taskObj = tasksObject.getJSONObject(taskId);
-                                String name = taskObj.getString("name");
-                                String objective = taskObj.getString("objective");
-                                int pomodoros = taskObj.getInt("pomodorosRemaining");
-                                long deadlineL = taskObj.getLong("deadline");
-                                String priority = taskObj.getString("priority");
-                                String status = taskObj.getString("status");
+                            mTasks.addAll(converter.convertJsonTasks(jsonObject));
 
-                                // now create a Task based on it
-                                Task task = new Task();
-                                task.setName(name);
-                                task.setObjective(objective);
-                                task.setPomodorosRemaining(pomodoros);
-                                task.setPriority(TaskPriority.valueOf(priority));
-                                // convert the long timestampe to a date
-                                Date deadLineDate = new Date();
-                                deadLineDate.setTime(deadlineL);
-                                task.setDeadline(deadLineDate);
-                                // set the status
-                                task.setStatus(TaskStatus.valueOf(status));
-                                // add that information to the tasks list
-                                tasks.add(task);
-                            }
-                            Log.d(TAG, "downloaded " + tasks.size() + " tasks");
-                            Log.d(TAG, tasks.toString());
+                            // update the UI
                         } catch (JSONException e) {
                             e.printStackTrace();
+                            Toast.makeText(getContext(), R.string.download_error_json, Toast.LENGTH_LONG);
+
+                        } finally {
+
+                            Log.d(TAG, "downloaded " + mTasks.size() + " tasks");
+                            Log.d(TAG, mTasks.toString());
+
+                            // update the RecyclerView adapter
+                            rvAdapter.notifyDataSetChanged();
                         }
                     }
                 }, new Response.ErrorListener() {

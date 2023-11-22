@@ -218,6 +218,7 @@ public class ViewTaskFragment extends Fragment implements AdapterView.OnClickLis
             if (this.mTask != null){
                 TaskRepository.getRepository(getContext()).deleteTask(this.mTask);
             }
+			// TODO navigate to home page
         } else if (view.getId() == R.id.btn_view_do_task){
             // launch the clock app with a timer for 25 minutes
             // create a new Intent to launch the timer app
