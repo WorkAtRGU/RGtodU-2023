@@ -53,4 +53,13 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 
     implementation("com.android.volley:volley:1.2.1")
+
+    val room_version = "2.5.2"
+
+    implementation("androidx.room:room-runtime:$room_version")
+    annotationProcessor("androidx.room:room-compiler:$room_version")
+    // optional - Test helpers
+    testImplementation("androidx.room:room-testing:$room_version")
+
+
 }

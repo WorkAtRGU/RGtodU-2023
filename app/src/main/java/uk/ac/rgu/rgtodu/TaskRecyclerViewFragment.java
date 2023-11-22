@@ -5,6 +5,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -27,6 +28,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import uk.ac.rgu.rgtodu.data.JsonFirebaseTasksToTaskConverter;
 import uk.ac.rgu.rgtodu.data.Task;
 import uk.ac.rgu.rgtodu.data.TaskPriority;
 import uk.ac.rgu.rgtodu.data.TaskRepository;
@@ -85,16 +87,16 @@ public class TaskRecyclerViewFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         // get some sample tasks
-        TaskRepository repo = TaskRepository.getRepository(getContext());
-        List<Task> tasks = repo.getSyntheticTasks(1000);
+//        TaskRepository repo = TaskRepository.getRepository(getContext());
+//        List<Task> tasks = repo.getSyntheticTasks(1000);
 
         // get the RecycylerView on the UI
         RecyclerView rv = view.findViewById(R.id.rv_taskRecyclerView);
 
         // create a new Adapter for the RecyclerView
-        RecyclerView.Adapter adapter = new TaskRecyclerViewAdapter(getContext(), tasks);
+        rvAdapter = new TaskRecyclerViewAdapter(getContext(), this.mTasks);
         // set the recycler view's adapter
-        rv.setAdapter(adapter);
+        rv.setAdapter(rvAdapter);
         // setup the layout manager on the recycler view
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 

@@ -6,6 +6,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 
 import android.provider.AlarmClock;
 import android.provider.CalendarContract;
@@ -217,6 +218,8 @@ public class ViewTaskFragment extends Fragment implements AdapterView.OnClickLis
             // if we're displaying a task, then delete it
             if (this.mTask != null){
                 TaskRepository.getRepository(getContext()).deleteTask(this.mTask);
+                // launch the action
+                Navigation.findNavController(view).navigate(R.id.action_viewTaskFragment_to_homeFragment);
             }
 			// TODO navigate to home page
         } else if (view.getId() == R.id.btn_view_do_task){

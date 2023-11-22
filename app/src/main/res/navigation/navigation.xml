@@ -54,10 +54,17 @@
             android:name="task_name"
             app:argType="string"
             android:defaultValue="Dog of Wisdom" />
+        <action
+            android:id="@+id/action_viewTaskFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
     </fragment>
     <fragment
         android:id="@+id/taskListViewFragment"
         android:name="uk.ac.rgu.rgtodu.TaskListViewFragment"
         android:label="fragment_task_list_view"
-        tools:layout="@layout/fragment_task_list_view" />
+        tools:layout="@layout/fragment_task_list_view" >
+        <action
+            android:id="@+id/action_taskListViewFragment_to_viewTaskFragment"
+            app:destination="@id/viewTaskFragment" />
+    </fragment>
 </navigation>

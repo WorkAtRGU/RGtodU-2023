@@ -47,4 +47,8 @@
     <string name="tv_taskListPomodoros">%1$d pomodoros remaining</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="download_error">Error with downloading tasks, sorry.</string>
+    <string name="download_error_json">Sorry, error processing the downloaded task list</string>
+
 </resources>
