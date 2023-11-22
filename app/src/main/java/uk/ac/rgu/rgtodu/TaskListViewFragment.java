@@ -13,6 +13,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -36,6 +39,7 @@ import uk.ac.rgu.rgtodu.data.Task;
 import uk.ac.rgu.rgtodu.data.TaskPriority;
 import uk.ac.rgu.rgtodu.data.TaskRepository;
 import uk.ac.rgu.rgtodu.data.TaskStatus;
+import uk.ac.rgu.rgtodu.data.TasksViewModel;
 
 /**
  * A simple {@link Fragment} subclass for displaying Tasks using a ListView and custom adapter
@@ -51,9 +55,12 @@ public class TaskListViewFragment extends Fragment implements AdapterView.OnItem
     }
 
     // the list of tasks being displayed
-    List<Task> mTasks;
+    LiveData<List<Task>> mTasks;
     // the ListView being used to display them
     ListView mLvTasks;
+
+    // ArrayAdapter for displaying
+    ArrayAdapter mAdapter;
 
     /**
      * Use this factory method to create a new instance of
@@ -73,8 +80,24 @@ public class TaskListViewFragment extends Fragment implements AdapterView.OnItem
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
         }
-        // an empty list of Tasks that will be used to store the task being displayed
-        this.mTasks = new ArrayList<Task>();
+        // get a ViewModelProvider for this fragment
+        ViewModelProvider provider = new ViewModelProvider(this);
+        // now get the ViewModel for Tasks
+        TasksViewModel tasksViewModel = provider.get(TasksViewModel.class);
+
+        // now get all the tasks
+        this.mTasks = tasksViewModel.getAllTasks();
+        // now observe any changes
+        this.mTasks.observe(this, new Observer<List<Task>>() {
+            @Override
+            public void onChanged(List<Task> tasks) {
+                // uncomment whichever method you want to use
+                displayTasksAsBasicStrings();
+                //displayTasksAsCustomStrings();
+                //displayTasksWithCustomAdapter();
+            }
+        });
+
     }
 
     @Override
@@ -94,17 +117,16 @@ public class TaskListViewFragment extends Fragment implements AdapterView.OnItem
 
         // download the tasks - commented out as using local database
         // donwloadAllTasks();
-		// clear any tasks already in mTasks
-		mTasks.clear();
+
+        // clear any tasks already in mTasks changed to LiveData
+		// mTasks.clear();
 		// get the tasks from the local db
-        List<Task> takss = TaskRepository.getRepository(getContext()).getAllTasks();
-        mTasks.addAll(takss);
+        //List<Task> takss = TaskRepository.getRepository(getContext()).getAllTasks();
+        //mTasks.addAll(takss);
         // uncomment whichever method you want to use
-		displayTasksAsBasicStrings();
+		// displayTasksAsBasicStrings();
 		//displayTasksAsCustomStrings();
 		//displayTasksWithCustomAdapter();
-                        
-		
     }
 
     @Override
@@ -113,7 +135,7 @@ public class TaskListViewFragment extends Fragment implements AdapterView.OnItem
         Log.d("TASKS", "ListView item at " + position + " clicked");
         // adapterView may have Tasks or Strings depending on which is being displayed
         // so get the tas from the mTasks list
-        Task task = mTasks.get(position);
+        Task task = mTasks.getValue().get(position);
         // create a Bundle and navigate to the ViewTaskFragment
         Bundle bundle = new Bundle();
         // it shouldn't but just in case
@@ -139,13 +161,13 @@ public class TaskListViewFragment extends Fragment implements AdapterView.OnItem
                     @Override
                     public void onResponse(String response) {
                         // empty the list of tasks that are currently being displayed
-                        mTasks.clear();
+                        List<Task> tasks = new ArrayList<>();
                         try {
                             JsonFirebaseTasksToTaskConverter converter = new JsonFirebaseTasksToTaskConverter();
 
                             // convert the respond to the root Json object
                             JSONObject jsonObject = new JSONObject(response);
-                            mTasks.addAll(converter.convertJsonTasks(jsonObject));
+                            tasks.addAll(converter.convertJsonTasks(jsonObject));
 
                             // update the UI later
                         } catch (JSONException e) {
@@ -155,13 +177,14 @@ public class TaskListViewFragment extends Fragment implements AdapterView.OnItem
                         } finally {
 
                             // do something with the results
-                            Log.d(TAG, "downloaded " + mTasks.size() + " tasks");
-                            Log.d(TAG, mTasks.toString());
+                            Log.d(TAG, "downloaded " + tasks.size() + " tasks");
+                            Log.d(TAG, tasks.toString());
 
                             // if we have something to display
-                            if (mTasks.size() > 0) {
+                            if (tasks.size() > 0) {
                                 // uncomment whichever method you want to use
-                                displayTasksAsBasicStrings();
+                                // all commented out as this is no longe rused
+                                // displayTasksAsBasicStrings();
                                 //displayTasksAsCustomStrings();
                                 //displayTasksWithCustomAdapter();
                             }
@@ -187,12 +210,12 @@ public class TaskListViewFragment extends Fragment implements AdapterView.OnItem
      */
     private void displayTasksAsBasicStrings() {
         // for just using the toString method of Task
-        ArrayAdapter<Task> lv_adapter = new ArrayAdapter<Task>(
+        mAdapter = new ArrayAdapter<Task>(
                 getContext(),
                 android.R.layout.simple_list_item_1,
-                mTasks);
+                mTasks.getValue());
         // associate the adapter with the list
-        mLvTasks.setAdapter(lv_adapter);
+        mLvTasks.setAdapter(mAdapter);
         // set a listener for when the user clicks on a row in the ListView
         mLvTasks.setOnItemClickListener(this);
     }
@@ -204,16 +227,16 @@ public class TaskListViewFragment extends Fragment implements AdapterView.OnItem
         // for providing a List of alternative Strings
 
          List<String> taskStrs = new ArrayList<String>();
-         for (Task task : mTasks){
+         for (Task task : mTasks.getValue()){
             taskStrs.add(task.getName());
          }
          // create a new adapter for the list of alternative strings
-         ArrayAdapter<String> lv_adapter = new ArrayAdapter<String>(
+         mAdapter = new ArrayAdapter<String>(
          getContext(),
          android.R.layout.simple_list_item_1,
          taskStrs);
 
-         mLvTasks.setAdapter(lv_adapter);
+         mLvTasks.setAdapter(mAdapter);
 
          // set a listener for when the user clicks on a row in the ListView
         mLvTasks.setOnItemClickListener(this);
@@ -224,11 +247,11 @@ public class TaskListViewFragment extends Fragment implements AdapterView.OnItem
      */
     private void displayTasksWithCustomAdapter() {
         // for using a custom Adapter to display each task
-        TaskListItemViewAdapter lv_adapter = new TaskListItemViewAdapter(
-                getContext(), R.layout.task_list_view_item, mTasks
+        mAdapter = new TaskListItemViewAdapter(
+                getContext(), R.layout.task_list_view_item, mTasks.getValue()
         );
         // Associate the Adapter with the ListView
-        mLvTasks.setAdapter(lv_adapter);
+        mLvTasks.setAdapter(mAdapter);
         // no need to add click listener, as its done on the Button on the row
     }
 

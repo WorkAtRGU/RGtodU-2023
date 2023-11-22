@@ -1,5 +1,6 @@
 package uk.ac.rgu.rgtodu.data;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
@@ -13,10 +14,10 @@ import java.util.List;
 public interface TaskDao {
 
     @Query("Select * from task")
-    public List<Task> getAllTasks();
+    public LiveData<List<Task>> getAllTasks();
 
     @Query("Select * from task WHERE name like :name")
-    public List<Task> findTasksByName(String name);
+    public LiveData<List<Task>> findTasksByName(String name);
 
     @Query("Select * from task where id like :id")
     public Task findTaskById(long id);

@@ -1,17 +1,21 @@
 package uk.ac.rgu.rgtodu;
 
 import android.os.Bundle;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -24,15 +28,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 
 import uk.ac.rgu.rgtodu.data.JsonFirebaseTasksToTaskConverter;
 import uk.ac.rgu.rgtodu.data.Task;
-import uk.ac.rgu.rgtodu.data.TaskPriority;
 import uk.ac.rgu.rgtodu.data.TaskRepository;
-import uk.ac.rgu.rgtodu.data.TaskStatus;
+import uk.ac.rgu.rgtodu.data.TasksViewModel;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -43,10 +44,15 @@ public class TaskRecyclerViewFragment extends Fragment {
 
     private static final String TAG = "TaskRecyclerViewFrag";
 
+    // ViewModel for the tasks
+    private TasksViewModel mTasksViewModel;
+
     // the list of tasks being displayed
-    List<Task> mTasks;
+    LiveData<List<Task>> mTasks;
     // the RecyclerView adapter being used to display them
     RecyclerView.Adapter rvAdapter;
+
+
 
     public TaskRecyclerViewFragment() {
         // Required empty public constructor
@@ -54,13 +60,16 @@ public class TaskRecyclerViewFragment extends Fragment {
 
     /**
      * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
+     * this fragment
      *
+
      * @return A new instance of fragment TaskListRecyclerViewActivity.
      */
     // TODO: Rename and change types and number of parameters
     public static TaskRecyclerViewFragment newInstance() {
         TaskRecyclerViewFragment fragment = new TaskRecyclerViewFragment();
+        Bundle args = new Bundle();
+        fragment.setArguments(args);
         return fragment;
     }
 
@@ -68,11 +77,26 @@ public class TaskRecyclerViewFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-			// there shouldn't be anything to update here
+
         }
-		
-		// create an empty list of data to be displayed
-        this.mTasks = new ArrayList<Task>();
+        // get a ViewModelProvider for this fragment
+        ViewModelProvider provider = new ViewModelProvider(this);
+        // now get the ViewModel for Tasks
+        this.mTasksViewModel = provider.get(TasksViewModel.class);
+
+        // now get all the tasks
+        this.mTasks = this.mTasksViewModel.getAllTasks();
+        // now observe any changes
+        this.mTasks.observe(this, new Observer<List<Task>>() {
+            @Override
+            public void onChanged(List<Task> tasks) {
+                if (rvAdapter != null){
+                    rvAdapter.notifyDataSetChanged();
+                }
+            }
+        });
+
+
     }
 
     @Override
@@ -86,27 +110,27 @@ public class TaskRecyclerViewFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // get some sample tasks
-//        TaskRepository repo = TaskRepository.getRepository(getContext());
-//        List<Task> tasks = repo.getSyntheticTasks(1000);
+        // setup the RecyclerView
 
         // get the RecycylerView on the UI
         RecyclerView rv = view.findViewById(R.id.rv_taskRecyclerView);
 
-        // create a new Adapter for the RecyclerView
+        // create a new Adapter for the RecyclerView with the empty list
         rvAdapter = new TaskRecyclerViewAdapter(getContext(), this.mTasks);
-        // set the recycler view's adapter
+        // set the recycler view's rv_adapter
         rv.setAdapter(rvAdapter);
         // setup the layout manager on the recycler view
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
         // now get the Tasks from the remote endpoint
         // donwloadAllTasks();
-        // commented out, as now we're using the local database
-        mTasks.clear();
-        List<Task> takss = TaskRepository.getRepository(getContext()).getAllTasks();
-        mTasks.addAll(takss);
-        rvAdapter.notifyDataSetChanged();
+        // above commented out, as now we're using the local database
+
+        // below commented out as using LiveData and ViewModel
+//        mTasks.clear();
+//        List<Task> tasks = TaskRepository.getRepository(getContext()).getAllTasks();
+//        mTasks.addAll(takss);
+//        rvAdapter.notifyDataSetChanged();
     }
 
     /**
@@ -115,19 +139,19 @@ public class TaskRecyclerViewFragment extends Fragment {
      */
     private void donwloadAllTasks(){
         // make my volley request
-        String url = "https://cm3110-2023-default-rtdb.europe-west1.firebasedatabase.app/dcorsar.json";
+        String url = "https://cm3110-2022-default-rtdb.firebaseio.com/dcorsar.json";
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
                         // empty the list of tasks that are currently being displayed
-                        mTasks.clear();
+                        List<Task> tasks = new ArrayList<>();
                         try {
                             JsonFirebaseTasksToTaskConverter converter = new JsonFirebaseTasksToTaskConverter();
 
                             // convert the respond to the root Json object
                             JSONObject jsonObject = new JSONObject(response);
-                            mTasks.addAll(converter.convertJsonTasks(jsonObject));
+                            tasks.addAll(converter.convertJsonTasks(jsonObject));
 
                             // update the UI
                         } catch (JSONException e) {
@@ -136,20 +160,24 @@ public class TaskRecyclerViewFragment extends Fragment {
 
                         } finally {
 
-                            Log.d(TAG, "downloaded " + mTasks.size() + " tasks");
+                            Log.d(TAG, "downloaded " + tasks.size() + " tasks");
                             Log.d(TAG, mTasks.toString());
 
                             // update the RecyclerView adapter
                             rvAdapter.notifyDataSetChanged();
                         }
                     }
+
                 }, new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Log.d("tasks", error.getLocalizedMessage());
-                    }
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d(TAG, "error with downloading ");
+                // display message to the user
+                Toast.makeText(getContext(), R.string.download_error, Toast.LENGTH_LONG);
+            }
         });
         RequestQueue queue = Volley.newRequestQueue(getContext());
         queue.add(stringRequest);
+
     }
 }
